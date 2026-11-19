@@ -1,13 +1,13 @@
 {
-  "name": "Българско радио",
-  "short_name": "BG Радио",
+  "name": "World Radio · Live",
+  "short_name": "World Radio",
   "lang": "bg",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#101611",
   "theme_color": "#101611",
-  "description": "Български радиостанции от България и по света",
+  "description": "Радиостанции от целия свят с филтри по държава, език и музикален стил.",
   "icons": [
     {
       "src": "./icon.svg",
