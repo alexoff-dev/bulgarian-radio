@@ -91,18 +91,17 @@ const channels=[
 ['Drum & Bass Radio','drum',['drum and bass','dnb']]
 ];
 for(const [name,slug,tags] of channels){
-const existing=stations.find(s=>{
-const n=(s.name||'').toLowerCase().replace(/[^a-z0-9]+/g,' ');
-const key=name.toLowerCase().replace(/[^a-z0-9]+/g,' ');
-return n.includes(key)||(n.includes('eilo')&&n.includes(slug.replace('jazzfunksoul','jazz')));
-});
+const canonical=('EILO '+name).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+let existing=stations.find(s=>(s.name||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()===canonical);
 const stream='http://eilo.org:8000/'+slug;
 const player='https://eilo.org/streamer.php?ch='+slug;
 if(existing){
-if(/eilo/i.test(existing.name||'')){existing.url=stream;existing.url_resolved=stream;existing.homepage=player}
-continue;
-}
+existing.url=stream;existing.url_resolved=stream;existing.homepage=player;
+existing.country='Bulgaria';existing.countrycode='BG';
+existing.tags=tags;existing.languages=['English'];existing.codec='MP3';existing.bitrate=128;
+}else{
 stations.push({stationuuid:'eilo-official-'+slug,name:'EILO '+name,url:stream,url_resolved:stream,homepage:player,favicon:'',country:'Bulgaria',countrycode:'BG',tags,languages:['English'],codec:'MP3',bitrate:128,clickcount:0});
+}
 }
 }
 async function loadCountryStations(code){if(!code||loadedCountries.has(code))return;const option=countryDirectory.find(x=>x.iso_3166_1===code);const name=option?.name||code;$('notice').hidden=false;$('notice').textContent='Зареждам всички налични станции от '+name+'…';try{const raw=await api('/json/stations/bycountrycodeexact/'+encodeURIComponent(code)+'?limit=10000&hidebroken=true&order=clickcount&reverse=true');mergeStations(raw);loadedCountries.add(code);populateSubgenres();$('notice').textContent='Заредени са '+raw.length+' станции от '+name+'.';if(!raw.length)$('notice').textContent='Няма налични станции за '+name+'.';render()}catch(e){$('notice').textContent='Не успях да заредя станциите от '+name+'. '+(e.name==='AbortError'?'Времето за изчакване изтече.':e.message)}}
