@@ -75,7 +75,31 @@ const countryName=s=>s.country||((s.countrycode||'').toUpperCase()==='BG'?'Бъ�
 async function api(path){let last;for(let i=0;i<API_HOSTS.length;i++){const host=API_HOSTS[(apiHost+i)%API_HOSTS.length],controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);try{const res=await fetch(host+path,{signal:controller.signal,headers:{Accept:'application/json'}});if(!res.ok)throw Error('HTTP '+res.status);apiHost=(apiHost+i)%API_HOSTS.length;return await res.json()}catch(e){last=e}finally{clearTimeout(timer)}}throw last||Error('Radio Browser не отговаря')}
 function normalizeStations(raw){return (raw||[]).filter(s=>{const u=s.url_resolved||s.url;return u&&(u.startsWith('http://')||u.startsWith('https://'))}).map(s=>({...s,tags:(s.tags||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean),languages:(s.language||'').split(/[;,]/).map(x=>x.trim()).filter(Boolean)}))}
 function mergeStations(incoming){const byId=new Map(stations.map(s=>[stationId(s),s]));for(const s of normalizeStations(incoming)){const id=stationId(s);if(id)byId.set(id,s)}stations=[...byId.values()]}
-function ensureEiloStation(){const exists=stations.some(s=>/eilo.*jazz|jazz.*funk.*soul/i.test(s.name||''));if(exists)return;stations.unshift({stationuuid:'eilo-jazz-funk-soul-custom',name:'EILO Jazz, Funk & Soul Radio',url:'http://eilo.org:8000/jazzfunksoul',url_resolved:'http://eilo.org:8000/jazzfunksoul',homepage:'https://eilo.org/streamer.php?ch=jazzfunksoul',favicon:'',country:'Bulgaria',countrycode:'BG',tags:['jazz','funk','soul'],language:'Bulgarian',codec:'MP3',bitrate:128,clickcount:0,tags:['jazz','funk','soul'],languages:['Bulgarian']})}
+function ensureEiloStation(){
+const channels=[
+['Earth & Beat Radio','earthbeat',['world','electronic','tribal']],
+['Jazz, Funk & Soul Radio','jazzfunksoul',['jazz','funk','soul']],
+['Psychedelic Radio','psychedelic',['psychedelic','trance','electronic']],
+['Ambient & Chill Radio','ambient',['ambient','chill','downtempo']],
+['Progressive Radio','progressive',['progressive','house','electronic']],
+['Techno Radio','techno',['techno','electronic']],
+['Hard Techno Radio','hard',['hard techno','techno']],
+['House Radio','house',['house','electronic']],
+['Trance Radio','trance',['trance','electronic']],
+['Mixotic Radio','mixotic',['dj mixes','electronic']],
+['Dubstep Radio','dubstep',['dubstep','bass']],
+['Drum & Bass Radio','drum',['drum and bass','dnb']]
+];
+for(const [name,slug,tags] of channels){
+const exists=stations.some(s=>{
+const n=(s.name||'').toLowerCase();
+return n.includes(name.toLowerCase())||(n.includes('eilo')&&n.includes(name.split(' ')[0].toLowerCase()))||(slug==='jazzfunksoul'&&n.includes('jazz')&&n.includes('funk'));
+});
+if(exists)continue;
+const playlist='https://eilo.org/getm3u.php?m3u='+slug;
+stations.push({stationuuid:'eilo-official-'+slug,name,url:playlist,url_resolved:playlist,homepage:'https://eilo.org/',favicon:'',country:'Bulgaria',countrycode:'BG',tags,languages:['English'],codec:'MP3',bitrate:128,clickcount:0});
+}
+}
 async function loadCountryStations(code){if(!code||loadedCountries.has(code))return;const option=countryDirectory.find(x=>x.iso_3166_1===code);const name=option?.name||code;$('notice').hidden=false;$('notice').textContent='Зареждам всички налични станции от '+name+'…';try{const raw=await api('/json/stations/bycountrycodeexact/'+encodeURIComponent(code)+'?limit=10000&hidebroken=true&order=clickcount&reverse=true');mergeStations(raw);loadedCountries.add(code);populateSubgenres();$('notice').textContent='Заредени са '+raw.length+' станции от '+name+'.';if(!raw.length)$('notice').textContent='Няма налични станции за '+name+'.';render()}catch(e){$('notice').textContent='Не успях да заредя станциите от '+name+'. '+(e.name==='AbortError'?'Времето за изчакване изтече.':e.message)}}
 async function loadStations(){ $('stations').innerHTML='<div class="empty">Зареждам глобалния каталог…</div>';$('count').textContent='';$('notice').hidden=true;try{const results=await Promise.allSettled([api('/json/stations?limit=10000&hidebroken=true&order=clickcount&reverse=true'),api('/json/countries?order=stationcount&reverse=true')]);if(results[0].status!=='fulfilled')throw results[0].reason;stations=[];mergeStations(results[0].value);ensureEiloStation();countryDirectory=results[1].status==='fulfilled'?results[1].value:[];loadedCountries=new Set();populateFilters();render();if(!stations.length)$('notice').textContent='В момента няма налични станции в каталога.'}catch(e){$('stations').innerHTML='<div class="empty">Не успях да заредя каталога.<br><button class="button" id="retry">Опитай отново</button></div>';$('retry').onclick=loadStations;$('count').textContent='Грешка';$('notice').textContent='Проблем с връзката към Radio Browser: '+(e.name==='AbortError'?'времето за изчакване изтече':e.message);$('notice').hidden=false}}
 function stationGenres(s){const tags=s.tags||[],joined=tags.join(' ');return GENRE_GROUPS.filter(group=>group.id!=='other'&&group.keys.some(k=>joined.includes(k))).map(g=>g.id).concat(GENRE_GROUPS.some(g=>g.id!=='other'&&g.keys.some(k=>joined.includes(k)))?[]:['other'])}
