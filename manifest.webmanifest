@@ -1,0 +1,19 @@
+{
+  "name": "Българско радио",
+  "short_name": "BG Радио",
+  "lang": "bg",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101611",
+  "theme_color": "#101611",
+  "description": "Български радиостанции от България и по света",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
